@@ -1,0 +1,14 @@
+{
+  "name": "Technology Leader",
+  "roles": ["TPM", "AI Transformation Manager", "Delivery Leader"],
+  "focus_areas": [
+    "enterprise adoption",
+    "program delivery",
+    "governance",
+    "agents",
+    "infrastructure",
+    "vendor strategy"
+  ],
+  "priority_companies": ["OpenAI", "Anthropic", "Google", "Microsoft", "AWS", "NVIDIA"],
+  "industry": "Technology"
+}

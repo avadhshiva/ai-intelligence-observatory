@@ -1,0 +1,90 @@
+# -------------------------
+# Python
+# -------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+
+*.so
+.Python
+
+build/
+dist/
+downloads/
+eggs/
+.eggs/
+*.egg-info/
+*.egg
+
+# Virtual Environments
+.venv/
+venv/
+env/
+ENV/
+
+# -------------------------
+# Environment & Secrets
+# -------------------------
+.env
+.env.*
+!.env.example
+
+.streamlit/secrets.toml
+
+# -------------------------
+# Databases
+# -------------------------
+*.db
+*.sqlite
+*.sqlite3
+
+# -------------------------
+# Logs
+# -------------------------
+logs/
+*.log
+
+# -------------------------
+# Testing
+# -------------------------
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# -------------------------
+# IDE
+# -------------------------
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# -------------------------
+# OS Files
+# -------------------------
+.DS_Store
+Thumbs.db
+
+# -------------------------
+# Streamlit
+# -------------------------
+.streamlit/
+
+# -------------------------
+# Jupyter
+# -------------------------
+.ipynb_checkpoints/
+
+# -------------------------
+# Generated Reports
+# -------------------------
+reports/
+exports/
+generated/
+*.pdf
+
+# -------------------------
+# CrewAI / AI Outputs
+# -------------------------
+logs/raw_crewai_output.json

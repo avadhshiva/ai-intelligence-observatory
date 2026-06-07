@@ -1,0 +1,15 @@
+# Runtime dependencies — sync with pyproject.toml [project.dependencies]
+crewai>=0.86.0
+feedparser>=6.0.11
+python-dotenv>=1.0.1
+sqlalchemy>=2.0.36
+apscheduler>=3.10.4
+streamlit>=1.40.0
+pandas>=2.2.3
+plotly>=5.24.1
+jinja2>=3.1.4
+httpx>=0.28.0
+python-json-logger>=2.0.7
+reportlab>=4.2.5
+json-repair>=0.30.0
+pydantic>=2.11.9
