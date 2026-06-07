@@ -54,6 +54,29 @@ News (RSS + NewsAPI)
 - **CrewAI diagnostics** — Parse status, fallback rate, token usage, raw output viewer
 - **Automated daily runs** — GitHub Actions cron at 06:00 IST
 
+## Screenshots
+
+### Executive Dashboard
+![Executive Dashboard](docs/images/executive-brief.png)
+
+### Briefing Detail
+![Briefing Detail](docs/images/briefingDetails.png)
+
+### Company Activity Analytics
+![Company Activity](docs/images/company-activity.png)
+
+### Company Activity Details
+![Company Activity Details](docs/images/company-activity-detail.png)
+
+### Personal CTO Insights
+![Personal CTO](docs/images/personal-cto.png)
+
+### Personal CTO Details
+![Personal CTO Details](docs/images/personal-cto-detail.png)
+
+### CrewAI Diagnostics
+![CrewAI Diagnostics](docs/images/crewai-diagnostics.png)
+
 ## Quick Start
 
 ```powershell
