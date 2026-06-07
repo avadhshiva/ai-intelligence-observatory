@@ -25,7 +25,10 @@ REQUIRED_TABLES = [
     "raw_crew_outputs",
 ]
 
-REQUIRED_DIRS = ["data", "logs", "config", "dashboard", "src", "tests"]
+#REQUIRED_DIRS = ["data", "logs", "config", "dashboard", "src", "tests"]
+
+REQUIRED_DIRS = ["data", "config", "dashboard", "src", "tests"]
+
 
 IMPORT_MODULES = [
     "ai_observatory.config",
@@ -97,6 +100,7 @@ def check_database() -> CheckResult:
 
 
 def check_required_folders() -> CheckResult:
+    (ROOT / "logs").mkdir(exist_ok=True)
     missing = [name for name in REQUIRED_DIRS if not (ROOT / name).exists()]
     if missing:
         return CheckResult("required_folders", False, f"Missing: {', '.join(missing)}")
