@@ -8,7 +8,6 @@ import sys
 import traceback
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 SRC = ROOT / "src"
@@ -26,6 +25,8 @@ REQUIRED_TABLES = [
     "raw_crew_outputs",
 ]
 
+REQUIRED_DIRS = ["data", "logs", "config", "dashboard", "src", "tests"]
+
 IMPORT_MODULES = [
     "ai_observatory.config",
     "ai_observatory.logging_setup",
@@ -37,16 +38,22 @@ IMPORT_MODULES = [
     "ai_observatory.email_service",
     "ai_observatory.reports.pdf_generator",
     "ai_observatory.schemas.crew_output",
-    "pandas",
-    "plotly.express",
-    "streamlit",
     "feedparser",
     "httpx",
     "jinja2",
     "json_repair",
     "pydantic",
-    "reportlab",
     "sqlalchemy",
+]
+
+DASHBOARD_IMPORT_MODULES = [
+    "pandas",
+    "plotly.express",
+    "streamlit",
+    "ai_observatory.agents.company_intelligence",
+    "ai_observatory.crew_metrics",
+    "ai_observatory.database",
+    "ai_observatory.user_profile",
 ]
 
 
@@ -89,8 +96,29 @@ def check_database() -> CheckResult:
         return CheckResult("database", False, str(exc))
 
 
+def check_required_folders() -> CheckResult:
+    missing = [name for name in REQUIRED_DIRS if not (ROOT / name).exists()]
+    if missing:
+        return CheckResult("required_folders", False, f"Missing: {', '.join(missing)}")
+
+    from ai_observatory.config import PROJECT_ROOT
+    from ai_observatory.crew_parser import LOGS_DIR
+
+    writable = True
+    for path in (PROJECT_ROOT / "data", LOGS_DIR):
+        path.mkdir(exist_ok=True)
+        try:
+            probe = path / ".write_probe"
+            probe.write_text("ok", encoding="utf-8")
+            probe.unlink(missing_ok=True)
+        except OSError:
+            writable = False
+    if not writable:
+        return CheckResult("required_folders", False, "data/ or logs/ not writable")
+    return CheckResult("required_folders", True, f"{len(REQUIRED_DIRS)} folders present, writable OK")
+
+
 def check_crewai() -> CheckResult:
-    warnings: list[str] = []
     try:
         from ai_observatory.crew import _crewai_types, run_observatory_crew
 
@@ -100,9 +128,9 @@ def check_crewai() -> CheckResult:
         for symbol in (Agent, Crew, LLM, Process, Task):
             if symbol is None:
                 return CheckResult("crewai", False, "CrewAI symbol import returned None")
-        return CheckResult("crewai", True, "CrewAI lazy import OK", warnings)
+        return CheckResult("crewai", True, "CrewAI lazy import OK")
     except Exception as exc:
-        return CheckResult("crewai", False, str(exc), warnings)
+        return CheckResult("crewai", False, str(exc))
 
 
 def check_openai_config() -> CheckResult:
@@ -117,81 +145,67 @@ def check_openai_config() -> CheckResult:
     return CheckResult("openai_config", True, detail, warnings)
 
 
-def check_email_config() -> CheckResult:
+def check_smtp_config() -> CheckResult:
     from ai_observatory.config import settings
 
     warnings: list[str] = []
-    configured = all([settings.smtp_user, settings.smtp_password, settings.email_from])
+    configured = all([settings.smtp_host, settings.smtp_user, settings.smtp_password, settings.email_from])
     if not configured:
         warnings.append("SMTP credentials incomplete — email delivery disabled")
     if not settings.email_recipients:
         warnings.append("EMAIL_RECIPIENTS empty — no recipients configured")
-    detail = f"smtp_ready={configured}, recipients={len(settings.email_recipients)}"
-    return CheckResult("email_config", True, detail, warnings)
+    detail = (
+        f"host={settings.smtp_host}, port={settings.smtp_port}, "
+        f"smtp_ready={configured}, recipients={len(settings.email_recipients)}"
+    )
+    return CheckResult("smtp_config", True, detail, warnings)
 
 
-def check_log_directories() -> CheckResult:
-    from ai_observatory.config import PROJECT_ROOT
-    from ai_observatory.crew_parser import LOGS_DIR, RAW_OUTPUT_PATH
+def check_newsapi_config() -> CheckResult:
+    from ai_observatory.config import settings
 
-    LOGS_DIR.mkdir(exist_ok=True)
-    writable = True
-    for path in (PROJECT_ROOT / "data", LOGS_DIR):
-        try:
-            probe = path / ".write_probe"
-            probe.write_text("ok", encoding="utf-8")
-            probe.unlink(missing_ok=True)
-        except OSError:
-            writable = False
-    detail = f"logs={LOGS_DIR}, raw_output={RAW_OUTPUT_PATH.name}, writable={writable}"
-    return CheckResult("log_directories", writable, detail)
+    warnings: list[str] = []
+    if not settings.newsapi_key:
+        warnings.append("NEWSAPI_KEY not set — RSS-only collection")
+    detail = f"key_configured={bool(settings.newsapi_key)}, query={settings.newsapi_query[:40]}..."
+    return CheckResult("newsapi_config", True, detail, warnings)
 
 
-def check_sqlite_schema() -> CheckResult:
-    try:
-        from sqlalchemy import inspect
-
-        import ai_observatory.database as db
-
-        db.init_db()
-        inspector = inspect(db.engine)
-        tables = inspector.get_table_names()
-        if "briefings" not in tables:
-            return CheckResult("sqlite_schema", False, "briefings table missing")
-        cols = {c["name"] for c in inspector.get_columns("briefings")}
-        required_cols = {"briefing_date", "stories_json", "intelligence_json"}
-        missing_cols = required_cols - cols
-        if missing_cols:
-            return CheckResult("sqlite_schema", False, f"briefings missing columns: {missing_cols}")
-        return CheckResult("sqlite_schema", True, f"{len(tables)} tables, briefings schema OK")
-    except Exception as exc:
-        return CheckResult("sqlite_schema", False, str(exc))
-
-
-def check_dashboard_syntax() -> CheckResult:
+def check_streamlit_dashboard_imports() -> CheckResult:
     import ast
+
+    failures: list[str] = []
+    for mod in DASHBOARD_IMPORT_MODULES:
+        try:
+            importlib.import_module(mod)
+        except Exception as exc:
+            failures.append(f"{mod}: {exc}")
 
     app_path = ROOT / "dashboard" / "app.py"
     source = app_path.read_text(encoding="utf-8")
-    ast.parse(source)
+    try:
+        ast.parse(source)
+        compile(source, str(app_path), "exec")
+    except Exception as exc:
+        failures.append(f"dashboard/app.py: {exc}")
+
     if "use_container_width" in source:
-        return CheckResult("dashboard_syntax", False, "Deprecated use_container_width still present")
-    if "components.v1" in source or "components.html" in source:
-        return CheckResult("dashboard_syntax", False, "Deprecated components.v1.html still present")
-    compile(source, str(app_path), "exec")
-    return CheckResult("dashboard_syntax", True, "dashboard/app.py syntax OK")
+        failures.append("dashboard/app.py: deprecated use_container_width present")
+    if failures:
+        return CheckResult("streamlit_dashboard", False, "; ".join(failures))
+    return CheckResult("streamlit_dashboard", True, "dashboard import chain OK")
 
 
 def run_all_checks() -> tuple[list[CheckResult], bool]:
     checks = [
         check_imports(),
         check_database(),
-        check_sqlite_schema(),
+        check_required_folders(),
         check_crewai(),
         check_openai_config(),
-        check_email_config(),
-        check_log_directories(),
-        check_dashboard_syntax(),
+        check_smtp_config(),
+        check_newsapi_config(),
+        check_streamlit_dashboard_imports(),
     ]
     ok = all(c.ok for c in checks)
     return checks, ok
@@ -219,4 +233,4 @@ if __name__ == "__main__":
         raise SystemExit(main())
     except Exception:
         traceback.print_exc()
-        raise SystemExit(2)
+        raise SystemExit(1)

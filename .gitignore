@@ -32,6 +32,12 @@ ENV/
 .streamlit/secrets.toml
 
 # -------------------------
+# Application Data
+# -------------------------
+data/
+config/user_profile.json
+
+# -------------------------
 # Databases
 # -------------------------
 *.db
