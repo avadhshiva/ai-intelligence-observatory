@@ -85,7 +85,7 @@ Thumbs.db
 # -------------------------
 # Generated Reports
 # -------------------------
-reports/
+data/reports/
 exports/
 generated/
 *.pdf
