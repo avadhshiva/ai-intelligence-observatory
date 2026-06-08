@@ -3,7 +3,7 @@ name: Daily Briefing
 on:
   schedule:
     # 06:00 IST = 00:30 UTC (IST is UTC+5:30)
-    - cron: "45 9 * * *"
+    - cron: "*/5 * * * *"
   workflow_dispatch:
 
 jobs:
